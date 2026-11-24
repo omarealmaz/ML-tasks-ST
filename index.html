@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MNIST CNN Studio & Neural Visualizer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: #111827;
+      --card-border: #1f2937;
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --accent: #06b6d4;
+      --accent-glow: rgba(6, 182, 212, 0.35);
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --radius: 12px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: rgba(17, 24, 39, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--card-border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 0.85rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .brand-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 1.15rem;
+      color: white;
+      box-shadow: 0 0 15px var(--accent-glow);
+    }
+    .brand h1 { font-size: 1.2rem; font-weight: 700; letter-spacing: -0.02em; }
+    .brand span { font-size: 0.75rem; color: var(--accent); font-family: 'Fira Code', monospace; }
+
+    nav {
+      display: flex;
+      gap: 0.5rem;
+      background: #0d131f;
+      padding: 4px;
+      border-radius: 10px;
+      border: 1px solid var(--card-border);
+    }
+
+    .nav-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 0.5rem 1.1rem;
+      font-size: 0.88rem;
+      font-weight: 500;
+      cursor: pointer;
+      border-radius: 7px;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .nav-btn:hover { color: var(--text); }
+    .nav-btn.active {
+      background: var(--primary);
+      color: #fff;
+      box-shadow: 0 2px 10px rgba(99, 102, 241, 0.4);
+    }
+
+    /* Connection Banner */
+    .connection-banner {
+      background: rgba(239, 68, 68, 0.15);
+      border-bottom: 1px solid rgba(239, 68, 68, 0.3);
+      padding: 0.6rem 2rem;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: #fca5a5;
+    }
+    .connection-banner.connected {
+      background: rgba(16, 185, 129, 0.12);
+      border-bottom: 1px solid rgba(16, 185, 129, 0.25);
+      color: #6ee7b7;
+    }
+
+    main {
+      flex: 1;
+      padding: 2rem;
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeIn 0.25s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    .studio-grid {
+      display: grid;
+      grid-template-columns: 1.25fr 1fr;
+      gap: 1.75rem;
+    }
+    @media (max-width: 980px) {
+      .studio-grid { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.2rem;
+    }
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Canvas styling */
+    .canvas-container {
+      position: relative;
+      background: #000;
+      border: 2px solid #2d3748;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+      touch-action: none;
+      cursor: crosshair;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 320px;
+    }
+
+    .canvas-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .canvas-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      margin-top: 1rem;
+      align-items: center;
+    }
+
+    .btn {
+      padding: 0.55rem 1rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all 0.2s;
+    }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-hover); box-shadow: 0 0 15px rgba(99, 102, 241, 0.5); }
+    .btn-secondary { background: #1f2937; color: var(--text); border-color: #374151; }
+    .btn-secondary:hover { background: #374151; }
+    .btn-accent { background: var(--accent); color: #090d16; font-weight: 700; }
+    .btn-accent:hover { filter: brightness(1.1); box-shadow: 0 0 15px var(--accent-glow); }
+
+    .brush-slider-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      background: #0d131f;
+      padding: 0.35rem 0.75rem;
+      border-radius: 8px;
+      border: 1px solid var(--card-border);
+    }
+    .brush-slider-wrap input { cursor: pointer; }
+
+    /* Results Panel */
+    .result-hero {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(6, 182, 212, 0.1));
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: 10px;
+      padding: 1.25rem;
+      text-align: center;
+      margin-bottom: 1.25rem;
+      position: relative;
+    }
+    .result-label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 0.3rem;
+    }
+    .result-sequence {
+      font-size: 3.2rem;
+      font-weight: 800;
+      letter-spacing: 0.15em;
+      color: #fff;
+      text-shadow: 0 0 25px var(--accent-glow);
+      font-family: 'Fira Code', monospace;
+    }
+    .result-speech-btn {
+      margin-top: 0.5rem;
+      font-size: 0.8rem;
+      padding: 0.3rem 0.8rem;
+    }
+
+    .digits-detected-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+    .digit-chip {
+      background: #0d131f;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 0.6rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .digit-chip:hover, .digit-chip.selected {
+      border-color: var(--accent);
+      background: rgba(6, 182, 212, 0.08);
+      box-shadow: 0 0 10px rgba(6, 182, 212, 0.2);
+    }
+    .digit-chip img {
+      width: 44px;
+      height: 44px;
+      border-radius: 4px;
+      border: 1px solid #374151;
+      margin-bottom: 0.3rem;
+      image-rendering: pixelated;
+    }
+    .digit-chip-val { font-weight: 700; font-size: 1.1rem; color: #fff; }
+    .digit-chip-conf { font-size: 0.72rem; color: var(--success); font-family: 'Fira Code', monospace; }
+
+    /* Surprise Box: Math & Number Analytics */
+    .insights-panel {
+      background: #0a1120;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 1rem;
+      margin-top: 1rem;
+    }
+    .insights-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--warning);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-bottom: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .insights-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.5rem;
+      font-size: 0.82rem;
+    }
+    .insight-item {
+      background: #111827;
+      padding: 0.45rem 0.6rem;
+      border-radius: 6px;
+      border: 1px solid #1f2937;
+    }
+    .insight-item span:first-child { color: var(--text-muted); display: block; font-size: 0.7rem; }
+    .insight-item span:last-child { font-weight: 600; color: #fff; font-family: 'Fira Code', monospace; }
+
+    /* Robustness / Noise Slider */
+    .noise-slider-card {
+      margin-top: 1rem;
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 0.85rem 1rem;
+    }
+    .noise-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.82rem;
+      margin-bottom: 0.4rem;
+    }
+    .noise-slider-card input { width: 100%; accent-color: var(--accent); }
+
+    /* Tab 2: Neural Visualizer */
+    .vis-flow { display: flex; flex-direction: column; gap: 1.5rem; }
+    .layer-card { background: #0d131f; border: 1px solid var(--card-border); border-radius: 10px; padding: 1.25rem; }
+    .layer-card-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.85rem;
+      border-bottom: 1px solid #1f2937;
+      padding-bottom: 0.5rem;
+    }
+    .layer-name { font-weight: 700; font-size: 0.95rem; color: #fff; }
+    .layer-spec { font-family: 'Fira Code', monospace; font-size: 0.78rem; color: var(--accent); }
+
+    .feature-maps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+      gap: 6px;
+    }
+    .feature-map-item {
+      background: #000;
+      border: 1px solid #2d3748;
+      border-radius: 4px;
+      overflow: hidden;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      transition: transform 0.2s;
+    }
+    .feature-map-item:hover {
+      transform: scale(1.35);
+      z-index: 10;
+      border-color: var(--accent);
+      box-shadow: 0 0 10px var(--accent-glow);
+    }
+    .feature-map-item img { width: 100%; height: 100%; image-rendering: pixelated; }
+
+    /* Softmax Bars */
+    .prob-bars-grid { display: flex; flex-direction: column; gap: 0.45rem; margin-top: 0.75rem; }
+    .prob-row { display: flex; align-items: center; gap: 0.75rem; font-size: 0.82rem; font-family: 'Fira Code', monospace; }
+    .prob-digit { width: 18px; font-weight: 700; }
+    .prob-track {
+      flex: 1;
+      height: 16px;
+      background: #1f2937;
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+    }
+    .prob-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      border-radius: 4px;
+      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .prob-fill.winner {
+      background: linear-gradient(90deg, #10b981, #34d399);
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+    }
+    .prob-percent { width: 55px; text-align: right; }
+
+    .fc-neurons-heatmap { display: flex; gap: 3px; overflow-x: auto; padding: 0.5rem 0; }
+    .fc-neuron-bar {
+      flex: 1;
+      min-width: 12px;
+      height: 60px;
+      background: #1f2937;
+      border-radius: 3px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      overflow: hidden;
+    }
+    .fc-neuron-fill { background: var(--accent); width: 100%; transition: height 0.3s; }
+
+    /* Tab 3: Model Capabilities */
+    .specs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+    }
+    .spec-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 1.25rem;
+    }
+    .spec-card-num { font-size: 2.2rem; font-weight: 800; color: var(--accent); font-family: 'Fira Code', monospace; }
+    .spec-card-lbl { color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem; }
+
+    .table-card table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    .table-card th, .table-card td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid var(--card-border); }
+    .table-card th { color: var(--accent); font-weight: 600; background: #0d131f; }
+    .table-card tr:hover { background: rgba(255,255,255,0.02); }
+
+    .note-box {
+      background: rgba(99, 102, 241, 0.08);
+      border-left: 4px solid var(--primary);
+      padding: 1rem;
+      border-radius: 0 8px 8px 0;
+      margin-top: 1.5rem;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    footer {
+      text-align: center;
+      padding: 1.5rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      border-top: 1px solid var(--card-border);
+      background: #0d131f;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Backend Health Notification -->
+  <div id="connectionBanner" class="connection-banner">
+    <span id="bannerText">Connecting to CNN Backend (http://127.0.0.1:8000)...</span>
+    <button class="btn btn-secondary" style="padding:0.2rem 0.5rem; font-size:0.75rem;" onclick="checkBackendHealth()">🔄 Check Connection</button>
+  </div>
+
+  <header>
+    <div class="brand">
+      <div class="brand-icon">AI</div>
+      <div>
+        <h1>MNIST CNN Studio</h1>
+        <span>3 Conv • 2 FC • 93,322 Params</span>
+      </div>
+    </div>
+    <nav>
+      <button class="nav-btn active" onclick="switchTab('studio')">✍️ Drawing Studio</button>
+      <button class="nav-btn" onclick="switchTab('visualizer')">🧠 Neural Brain Scan</button>
+      <button class="nav-btn" onclick="switchTab('specs')">⚡ Capabilities</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- TAB 1: DRAWING STUDIO -->
+    <div id="tab-studio" class="tab-content active">
+      <div class="studio-grid">
+        <!-- Drawing Board -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span>✍️ Touchpad & Mouse Drawing Pad</span>
+            </div>
+            <span style="font-size:0.75rem; color:var(--text-muted);">Draw single or multiple digits side-by-side</span>
+          </div>
+
+          <div class="canvas-container" id="canvasWrap">
+            <canvas id="paintCanvas"></canvas>
+            <canvas id="overlayCanvas" class="canvas-overlay"></canvas>
+          </div>
+
+          <div class="canvas-controls">
+            <button class="btn btn-primary" onclick="triggerPredict()">⚡ Predict Now</button>
+            <button class="btn btn-secondary" onclick="clearCanvas()">🗑️ Clear</button>
+            <button class="btn btn-secondary" onclick="undoStroke()">↩️ Undo</button>
+            
+            <div class="brush-slider-wrap">
+              <span>Pen:</span>
+              <input type="range" id="brushSize" min="10" max="36" value="22" oninput="updateBrush(this.value)">
+              <span id="brushVal" style="font-family:'Fira Code'; font-size:0.75rem;">22px</span>
+            </div>
+
+            <!-- Preset Samples Quick-Test -->
+            <button class="btn btn-secondary" onclick="loadSampleImage('image.png')">Sample: 8</button>
+            <button class="btn btn-secondary" onclick="loadSampleImage('multi_digits_sample.png')">Sample: 427</button>
+
+            <label class="btn btn-secondary" style="cursor:pointer; margin-left:auto;">
+              📁 Upload Image
+              <input type="file" id="fileUpload" accept="image/*" style="display:none;" onchange="handleFileUpload(event)">
+            </label>
+          </div>
+
+          <!-- Noise & Robustness Slider -->
+          <div class="noise-slider-card">
+            <div class="noise-header">
+              <span style="font-weight:600;">🧪 Robustness Stress-Test (Adversarial Noise Injection)</span>
+              <span id="noiseVal" style="font-family:'Fira Code'; color:var(--accent);">0%</span>
+            </div>
+            <input type="range" id="noiseSlider" min="0" max="0.5" step="0.02" value="0" oninput="updateNoise(this.value)">
+            <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.3rem;">
+              Injects simulated sensor noise in real-time to test the convolutional layer's spatial resilience.
+            </p>
+          </div>
+        </div>
+
+        <!-- Recognition & Surprise Feature Dashboard -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span>🎯 Multi-Digit Recognition Results</span>
+            </div>
+            <span id="statusIndicator" style="font-size:0.75rem; color:var(--success); font-family:'Fira Code';">Ready</span>
+          </div>
+
+          <!-- Hero Sequence -->
+          <div class="result-hero">
+            <div class="result-label">Recognized Digit Sequence</div>
+            <div class="result-sequence" id="recognizedSequence">--</div>
+            <button class="btn btn-accent result-speech-btn" id="speakBtn" onclick="speakPrediction()">
+              🔊 Voice Readout
+            </button>
+          </div>
+
+          <!-- Detected Digits List -->
+          <div style="font-size:0.82rem; font-weight:600; color:var(--text-muted); margin-bottom:0.5rem;">
+            Segmented Characters (Click to inspect in Neural Brain Scan):
+          </div>
+          <div class="digits-detected-grid" id="digitsGrid">
+            <div style="grid-column: 1/-1; text-align:center; padding:1.5rem; color:var(--text-muted); font-size:0.85rem;">
+              Draw one or multiple digits on the touchpad canvas, or click a Sample button.
+            </div>
+          </div>
+
+          <!-- Surprise Feature 1: Math & Number Analytics -->
+          <div class="insights-panel" id="insightsPanel" style="display:none;">
+            <div class="insights-title">
+              <span>✨ Smart Number Insights & Math Analytics</span>
+            </div>
+            <div class="insights-grid">
+              <div class="insight-item">
+                <span>PARITY</span>
+                <span id="insightEven">--</span>
+              </div>
+              <div class="insight-item">
+                <span>PRIME NUMBER</span>
+                <span id="insightPrime">--</span>
+              </div>
+              <div class="insight-item">
+                <span>SUM OF DIGITS</span>
+                <span id="insightSum">--</span>
+              </div>
+              <div class="insight-item">
+                <span>PRODUCT OF DIGITS</span>
+                <span id="insightProd">--</span>
+              </div>
+              <div class="insight-item">
+                <span>HEXADECIMAL</span>
+                <span id="insightHex">--</span>
+              </div>
+              <div class="insight-item">
+                <span>BINARY</span>
+                <span id="insightBin">--</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: NEURAL NETWORK VISUALIZER -->
+    <div id="tab-visualizer" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>🔬 Neural Brain Scan (Interactive Activations)</span>
+          </div>
+          <div id="activeDigitSelector" style="display:flex; gap:0.5rem; align-items:center;">
+            <span style="font-size:0.8rem; color:var(--text-muted);">Inspecting Digit:</span>
+            <div id="digitSelectBtns" style="display:flex; gap:0.35rem;"></div>
+          </div>
+        </div>
+
+        <div class="vis-flow">
+          <!-- Input + Output Softmax in Split -->
+          <div style="display:grid; grid-template-columns: 200px 1fr; gap:1.5rem;">
+            <div class="layer-card" style="text-align:center;">
+              <div class="layer-card-header">
+                <span class="layer-name">Input Layer</span>
+                <span class="layer-spec">28x28x1</span>
+              </div>
+              <img id="visInputImg" style="width:140px; height:140px; border-radius:6px; border:1px solid #374151; image-rendering:pixelated; margin-top:0.5rem;" src="" alt="Input Digit">
+            </div>
+
+            <div class="layer-card">
+              <div class="layer-card-header">
+                <span class="layer-name">Output Layer (Softmax Probabilities)</span>
+                <span class="layer-spec">10 Classes</span>
+              </div>
+              <div class="prob-bars-grid" id="probBars"></div>
+            </div>
+          </div>
+
+          <!-- Conv Layer 1 -->
+          <div class="layer-card">
+            <div class="layer-card-header">
+              <span class="layer-name">Conv Layer 1 Activations (Low-Level Features)</span>
+              <span class="layer-spec">32 Filters • 3x3 ReLU • Output 26x26</span>
+            </div>
+            <p style="font-size:0.78rem; color:var(--text-muted); margin-bottom:0.75rem;">
+              Detects stroke edges, gradients, and low-level spatial contours across the 28x28 image.
+            </p>
+            <div class="feature-maps-grid" id="conv1Maps"></div>
+          </div>
+
+          <!-- Conv Layer 2 -->
+          <div class="layer-card">
+            <div class="layer-card-header">
+              <span class="layer-name">Conv Layer 2 Activations (Mid-Level Features)</span>
+              <span class="layer-spec">64 Filters • 3x3 ReLU • Output 11x11</span>
+            </div>
+            <p style="font-size:0.78rem; color:var(--text-muted); margin-bottom:0.75rem;">
+              Combines simple edges into stroke junctions, curves, loops, and angle corners.
+            </p>
+            <div class="feature-maps-grid" id="conv2Maps"></div>
+          </div>
+
+          <!-- Conv Layer 3 -->
+          <div class="layer-card">
+            <div class="layer-card-header">
+              <span class="layer-name">Conv Layer 3 Activations (High-Level Digit Parts)</span>
+              <span class="layer-spec">64 Filters • 3x3 ReLU • Output 3x3</span>
+            </div>
+            <p style="font-size:0.78rem; color:var(--text-muted); margin-bottom:0.75rem;">
+              High-level structural building blocks: complete loops (8, 0), vertical stems (1, 4), crossbars (7, 4).
+            </p>
+            <div class="feature-maps-grid" id="conv3Maps"></div>
+          </div>
+
+          <!-- FC Layer 1 -->
+          <div class="layer-card">
+            <div class="layer-card-header">
+              <span class="layer-name">Fully Connected Layer 1 (Latent Representation)</span>
+              <span class="layer-spec">64 Dense Units • ReLU</span>
+            </div>
+            <p style="font-size:0.78rem; color:var(--text-muted); margin-bottom:0.5rem;">
+              Compressed 64-dimensional latent embedding combining spatial signals for final classification.
+            </p>
+            <div class="fc-neurons-heatmap" id="fcHeatmap"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: MODEL CAPABILITIES -->
+    <div id="tab-specs" class="tab-content">
+      <div class="specs-grid">
+        <div class="spec-card">
+          <div class="spec-card-num">98.90%</div>
+          <div class="spec-card-lbl">Test Benchmark Accuracy (10k images)</div>
+        </div>
+        <div class="spec-card">
+          <div class="spec-card-num">93,322</div>
+          <div class="spec-card-lbl">Total Parameters (~365 KB Footprint)</div>
+        </div>
+        <div class="spec-card">
+          <div class="spec-card-num">&lt; 1 ms</div>
+          <div class="spec-card-lbl">Average CPU Inference Latency</div>
+        </div>
+        <div class="spec-card">
+          <div class="spec-card-num">3 Conv + 2 FC</div>
+          <div class="spec-card-lbl">Balanced Convolutional Architecture</div>
+        </div>
+      </div>
+
+      <div class="card table-card">
+        <div class="card-header">
+          <div class="card-title">📋 Architectural Breakdown & Layer Specifications</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Layer</th>
+              <th>Type</th>
+              <th>Configuration</th>
+              <th>Output Dimensions</th>
+              <th>Parameters</th>
+              <th>Feature Extraction Role</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>conv_layer_1</code></td>
+              <td>Conv2D</td>
+              <td>32 filters (3x3), ReLU</td>
+              <td><code>(None, 26, 26, 32)</code></td>
+              <td>320</td>
+              <td>Stroke edge & orientation detection</td>
+            </tr>
+            <tr>
+              <td><code>maxpool_1</code></td>
+              <td>MaxPooling2D</td>
+              <td>Pool size 2x2, Stride 2</td>
+              <td><code>(None, 13, 13, 32)</code></td>
+              <td>0</td>
+              <td>Translation invariance & downsampling</td>
+            </tr>
+            <tr>
+              <td><code>conv_layer_2</code></td>
+              <td>Conv2D</td>
+              <td>64 filters (3x3), ReLU</td>
+              <td><code>(None, 11, 11, 64)</code></td>
+              <td>18,496</td>
+              <td>Curves, intersections, and loops</td>
+            </tr>
+            <tr>
+              <td><code>maxpool_2</code></td>
+              <td>MaxPooling2D</td>
+              <td>Pool size 2x2, Stride 2</td>
+              <td><code>(None, 5, 5, 64)</code></td>
+              <td>0</td>
+              <td>Spatial aggregation</td>
+            </tr>
+            <tr>
+              <td><code>conv_layer_3</code></td>
+              <td>Conv2D</td>
+              <td>64 filters (3x3), ReLU</td>
+              <td><code>(None, 3, 3, 64)</code></td>
+              <td>36,928</td>
+              <td>Holistic digit component structures</td>
+            </tr>
+            <tr>
+              <td><code>flatten</code></td>
+              <td>Flatten</td>
+              <td>Unrolls 3D feature tensor</td>
+              <td><code>(None, 576)</code></td>
+              <td>0</td>
+              <td>Linear feature vector</td>
+            </tr>
+            <tr>
+              <td><code>fc_layer_1</code></td>
+              <td>Dense</td>
+              <td>64 units, ReLU + Dropout (0.25)</td>
+              <td><code>(None, 64)</code></td>
+              <td>36,928</td>
+              <td>Non-linear feature combination & reasoning</td>
+            </tr>
+            <tr>
+              <td><code>fc_layer_2_output</code></td>
+              <td>Dense</td>
+              <td>10 units, Softmax</td>
+              <td><code>(None, 10)</code></td>
+              <td>650</td>
+              <td>Normalized class probabilities (0-9)</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="note-box">
+          <strong>💡 Why Did an Uncentered '8' Initially Look Like a '2'?</strong><br>
+          MNIST neural networks are trained on digits that are bounded, normalized into a 20×20 box, and centered by their center-of-mass in a 28×28 frame. When an image has large margins or is off-center, squashing the whole image to 28×28 shrinks the digit into an unrecognizable clump. Our integrated <code>segmentation.py</code> engine automatically segments, crops, and centers every digit according to the MNIST specification—allowing the model to achieve <strong>99.97% confidence</strong> on handwritten digits!
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    Antigravity AI Studio • MNIST Convolutional Neural Network • Powered by TensorFlow & Python
+  </footer>
+
+  <script>
+    // Determine Backend URL dynamically
+    let API_BASE = '';
+    if (window.location.protocol === 'file:' || !window.location.origin || window.location.origin === 'null') {
+      API_BASE = 'http://127.0.0.1:8000';
+    } else {
+      API_BASE = window.location.origin;
+    }
+
+    async function checkBackendHealth() {
+      const banner = document.getElementById('connectionBanner');
+      const text = document.getElementById('bannerText');
+      const candidatePorts = [API_BASE, 'http://127.0.0.1:8000', 'http://127.0.0.1:8001'];
+      
+      for (const base of candidatePorts) {
+        try {
+          const res = await fetch(`${base}/api/model_info`);
+          if (res.ok) {
+            API_BASE = base;
+            banner.className = 'connection-banner connected';
+            text.innerHTML = `🟢 <strong>Connected to AI Backend</strong> (${API_BASE}) — Ready for predictions!`;
+            return true;
+          }
+        } catch (e) {}
+      }
+
+      banner.className = 'connection-banner';
+      text.innerHTML = `⚠️ <strong>AI Backend is not running!</strong> Please start it in your terminal with: <code>./start.sh</code> or <code>python3 app.py</code> then click Check Connection.`;
+      return false;
+    }
+
+    // Canvas & Drawing Logic
+    const canvas = document.getElementById('paintCanvas');
+    const ctx = canvas.getContext('2d');
+    const overlay = document.getElementById('overlayCanvas');
+    const overlayCtx = overlay.getContext('2d');
+
+    let isDrawing = false;
+    let brushSize = 22;
+    let strokes = [];
+    let currentStroke = [];
+    let currentPredictionData = null;
+    let selectedDigitIdx = 0;
+
+    function resizeCanvas() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = rect.width * dpr;
+      canvas.height = 320 * dpr;
+      ctx.scale(dpr, dpr);
+
+      overlay.width = rect.width * dpr;
+      overlay.height = 320 * dpr;
+      overlayCtx.scale(dpr, dpr);
+
+      redraw();
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    function redraw() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, rect.width, 320);
+
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#ffffff';
+
+      for (const stroke of strokes) {
+        if (stroke.length < 1) continue;
+        ctx.lineWidth = stroke[0].size;
+        ctx.beginPath();
+        ctx.moveTo(stroke[0].x, stroke[0].y);
+        for (let i = 1; i < stroke.length; i++) {
+          ctx.lineTo(stroke[i].x, stroke[i].y);
+        }
+        ctx.stroke();
+      }
+    }
+
+    function getCoords(e) {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      return {
+        x: clientX - rect.left,
+        y: clientY - rect.top
+      };
+    }
+
+    function startDraw(e) {
+      e.preventDefault();
+      isDrawing = true;
+      const pt = getCoords(e);
+      pt.size = brushSize;
+      currentStroke = [pt];
+      strokes.push(currentStroke);
+
+      ctx.lineWidth = brushSize;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, brushSize / 2, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+
+      overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
+    }
+
+    function draw(e) {
+      if (!isDrawing) return;
+      e.preventDefault();
+      const pt = getCoords(e);
+      pt.size = brushSize;
+      currentStroke.push(pt);
+
+      const len = currentStroke.length;
+      if (len > 1) {
+        ctx.lineWidth = brushSize;
+        ctx.beginPath();
+        ctx.moveTo(currentStroke[len - 2].x, currentStroke[len - 2].y);
+        ctx.lineTo(pt.x, pt.y);
+        ctx.stroke();
+      }
+    }
+
+    function stopDraw(e) {
+      if (!isDrawing) return;
+      isDrawing = false;
+      debouncePredict();
+    }
+
+    canvas.addEventListener('pointerdown', startDraw);
+    canvas.addEventListener('pointermove', draw);
+    canvas.addEventListener('pointerup', stopDraw);
+    canvas.addEventListener('pointercancel', stopDraw);
+
+    function clearCanvas() {
+      strokes = [];
+      redraw();
+      overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
+      document.getElementById('recognizedSequence').innerText = '--';
+      document.getElementById('digitsGrid').innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding:1.5rem; color:var(--text-muted); font-size:0.85rem;">Canvas cleared. Draw numbers to predict.</div>';
+      document.getElementById('insightsPanel').style.display = 'none';
+      document.getElementById('statusIndicator').innerText = 'Ready';
+      document.getElementById('statusIndicator').style.color = 'var(--success)';
+    }
+
+    function undoStroke() {
+      strokes.pop();
+      redraw();
+      overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
+      triggerPredict();
+    }
+
+    function updateBrush(val) {
+      brushSize = parseInt(val, 10);
+      document.getElementById('brushVal').innerText = val + 'px';
+    }
+
+    function updateNoise(val) {
+      document.getElementById('noiseVal').innerText = Math.round(val * 200) + '%';
+      triggerPredict();
+    }
+
+    let predictTimeout = null;
+    function debouncePredict() {
+      clearTimeout(predictTimeout);
+      predictTimeout = setTimeout(triggerPredict, 600);
+    }
+
+    async function triggerPredict() {
+      if (strokes.length === 0) return;
+      const status = document.getElementById('statusIndicator');
+      status.innerText = 'Scanning...';
+      status.style.color = 'var(--warning)';
+
+      const dataUrl = canvas.toDataURL('image/png');
+      const noise = parseFloat(document.getElementById('noiseSlider').value);
+
+      try {
+        const resp = await fetch(`${API_BASE}/api/predict`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: dataUrl, noise: noise })
+        });
+        
+        if (!resp.ok) {
+          throw new Error(`Server returned HTTP ${resp.status}`);
+        }
+
+        const res = await resp.json();
+        currentPredictionData = res;
+        renderResults(res);
+        status.innerText = 'Ready';
+        status.style.color = 'var(--success)';
+      } catch (err) {
+        console.error("Predict error:", err);
+        status.innerText = 'Error connecting to backend';
+        status.style.color = 'var(--danger)';
+        checkBackendHealth();
+      }
+    }
+
+    function renderResults(data) {
+      const seqEl = document.getElementById('recognizedSequence');
+      const gridEl = document.getElementById('digitsGrid');
+      const insights = document.getElementById('insightsPanel');
+
+      if (!data.digits || data.digits.length === 0) {
+        seqEl.innerText = '--';
+        gridEl.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding:1.5rem; color:var(--text-muted); font-size:0.85rem;">No distinct digits detected. Try drawing larger strokes.</div>';
+        insights.style.display = 'none';
+        overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
+        return;
+      }
+
+      seqEl.innerText = data.sequence;
+
+      overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
+      data.digits.forEach((d) => {
+        const { x, y, w, h } = d.bbox;
+        overlayCtx.strokeStyle = '#06b6d4';
+        overlayCtx.lineWidth = 2;
+        overlayCtx.strokeRect(x, y, w, h);
+
+        overlayCtx.fillStyle = 'rgba(6, 182, 212, 0.85)';
+        overlayCtx.fillRect(x, Math.max(0, y - 22), 30, 20);
+        overlayCtx.fillStyle = '#090d16';
+        overlayCtx.font = 'bold 12px "Fira Code", monospace';
+        overlayCtx.fillText(d.digit, x + 10, Math.max(14, y - 7));
+      });
+
+      gridEl.innerHTML = data.digits.map((d, idx) => `
+        <div class="digit-chip ${idx === selectedDigitIdx ? 'selected' : ''}" onclick="selectDigit(${idx})">
+          <img src="${d.input_28x28}" alt="digit ${d.digit}">
+          <div class="digit-chip-val">${d.digit}</div>
+          <div class="digit-chip-conf">${d.confidence}%</div>
+        </div>
+      `).join('');
+
+      if (data.insights && data.insights.value !== undefined) {
+        insights.style.display = 'block';
+        document.getElementById('insightEven').innerText = data.insights.is_even ? 'Even' : 'Odd';
+        document.getElementById('insightPrime').innerText = data.insights.is_prime ? 'Yes (Prime)' : 'No (Composite)';
+        document.getElementById('insightSum').innerText = data.insights.sum_of_digits;
+        document.getElementById('insightProd').innerText = data.insights.product_of_digits;
+        document.getElementById('insightHex').innerText = '0x' + data.insights.hex;
+        document.getElementById('insightBin').innerText = data.insights.binary;
+      } else {
+        insights.style.display = 'none';
+      }
+
+      updateVisualizerForDigit(selectedDigitIdx);
+    }
+
+    function selectDigit(idx) {
+      selectedDigitIdx = idx;
+      document.querySelectorAll('.digit-chip').forEach((el, i) => {
+        el.classList.toggle('selected', i === idx);
+      });
+      updateVisualizerForDigit(idx);
+      switchTab('visualizer');
+    }
+
+    function updateVisualizerForDigit(idx) {
+      if (!currentPredictionData || !currentPredictionData.digits || !currentPredictionData.digits[idx]) return;
+      const digitData = currentPredictionData.digits[idx];
+
+      const btnContainer = document.getElementById('digitSelectBtns');
+      btnContainer.innerHTML = currentPredictionData.digits.map((d, i) => `
+        <button class="btn btn-secondary" style="padding:0.25rem 0.6rem; font-size:0.75rem; ${i === idx ? 'border-color:var(--accent); background:#1e293b;' : ''}" onclick="selectDigit(${i})">
+          Digit #${i+1} (${d.digit})
+        </button>
+      `).join('');
+
+      document.getElementById('visInputImg').src = digitData.input_28x28;
+
+      const barsContainer = document.getElementById('probBars');
+      barsContainer.innerHTML = digitData.probabilities.map((prob, d) => {
+        const pct = (prob * 100).toFixed(1);
+        const isWinner = (d === digitData.digit);
+        return `
+          <div class="prob-row">
+            <span class="prob-digit" style="${isWinner ? 'color:var(--success); font-weight:800;' : ''}">${d}</span>
+            <div class="prob-track">
+              <div class="prob-fill ${isWinner ? 'winner' : ''}" style="width: ${pct}%"></div>
+            </div>
+            <span class="prob-percent" style="${isWinner ? 'color:var(--success); font-weight:800;' : ''}">${pct}%</span>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('conv1Maps').innerHTML = digitData.activations.conv1.map(m => `
+        <div class="feature-map-item"><img src="${m}"></div>
+      `).join('');
+
+      document.getElementById('conv2Maps').innerHTML = digitData.activations.conv2.map(m => `
+        <div class="feature-map-item"><img src="${m}"></div>
+      `).join('');
+
+      document.getElementById('conv3Maps').innerHTML = digitData.activations.conv3.map(m => `
+        <div class="feature-map-item"><img src="${m}"></div>
+      `).join('');
+
+      document.getElementById('fcHeatmap').innerHTML = digitData.activations.fc1.map(v => {
+        const heightPct = Math.min(100, Math.max(5, Math.round(v * 40)));
+        return `
+          <div class="fc-neuron-bar" title="Activation: ${v}">
+            <div class="fc-neuron-fill" style="height:${heightPct}%;"></div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function speakPrediction() {
+      if (!currentPredictionData || !currentPredictionData.sequence) return;
+      const text = currentPredictionData.insights && currentPredictionData.insights.speech 
+        ? currentPredictionData.insights.speech 
+        : `The recognized number is ${currentPredictionData.sequence}.`;
+
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 1.0;
+        utterance.pitch = 1.1;
+        window.speechSynthesis.speak(utterance);
+      } else {
+        alert(text);
+      }
+    }
+
+    function loadSampleImage(filename) {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = function() {
+        const rect = canvas.parentElement.getBoundingClientRect();
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, rect.width, 320);
+
+        const scale = Math.min(rect.width / img.width, 300 / img.height, 1.0);
+        const drawW = img.width * scale;
+        const drawH = img.height * scale;
+        const x = (rect.width - drawW) / 2;
+        const y = (320 - drawH) / 2;
+        ctx.drawImage(img, x, y, drawW, drawH);
+
+        strokes = [[{ x: 0, y: 0, size: 1 }]];
+        triggerPredict();
+      };
+      img.src = `${API_BASE}/${filename}`;
+    }
+
+    function handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          const rect = canvas.parentElement.getBoundingClientRect();
+          ctx.fillStyle = '#000000';
+          ctx.fillRect(0, 0, rect.width, 320);
+
+          const scale = Math.min(rect.width / img.width, 300 / img.height);
+          const drawW = img.width * scale;
+          const drawH = img.height * scale;
+          const x = (rect.width - drawW) / 2;
+          const y = (320 - drawH) / 2;
+          ctx.drawImage(img, x, y, drawW, drawH);
+
+          strokes = [[{ x: 0, y: 0, size: 1 }]];
+          triggerPredict();
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+
+      document.getElementById('tab-' + tabId).classList.add('active');
+      const btnIdx = tabId === 'studio' ? 0 : (tabId === 'visualizer' ? 1 : 2);
+      document.querySelectorAll('.nav-btn')[btnIdx].classList.add('active');
+
+      if (tabId === 'visualizer' && currentPredictionData) {
+        updateVisualizerForDigit(selectedDigitIdx);
+      }
+    }
+
+    window.addEventListener('load', () => {
+      resizeCanvas();
+      checkBackendHealth();
+    });
+  </script>
+</body>
+</html>
