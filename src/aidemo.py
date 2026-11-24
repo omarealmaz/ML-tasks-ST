@@ -23,7 +23,9 @@ for i in range(num_rows * num_cols):
 plt.tight_layout()
 
 # 3. Save preview image and display window
-output_path = "mnist_samples.png"
+import os
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+output_path = os.path.join(PROJECT_ROOT, "assets", "mnist_samples.png")
 plt.savefig(output_path)
 print(f"Preview saved to {output_path}")
 

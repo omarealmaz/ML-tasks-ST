@@ -86,7 +86,10 @@ def main():
     print(f"--> Test Accuracy: {test_accuracy * 100:.2f}%")
 
     # 6. Save Model
-    model_save_path = "mnist_cnn.keras"
+    PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    models_dir = os.path.join(PROJECT_ROOT, "models")
+    os.makedirs(models_dir, exist_ok=True)
+    model_save_path = os.path.join(models_dir, "mnist_cnn.keras")
     model.save(model_save_path)
     print(f"\nModel saved successfully to {model_save_path}")
 
@@ -112,7 +115,9 @@ def main():
     ax2.grid(True)
 
     plt.tight_layout()
-    curves_file = "training_curves.png"
+    assets_dir = os.path.join(PROJECT_ROOT, "assets")
+    os.makedirs(assets_dir, exist_ok=True)
+    curves_file = os.path.join(assets_dir, "training_curves.png")
     plt.savefig(curves_file)
     plt.close()
     print(f"Training curves saved to {curves_file}")
@@ -133,7 +138,7 @@ def main():
         ax.axis('off')
 
     plt.tight_layout()
-    pred_file = "predictions_sample.png"
+    pred_file = os.path.join(assets_dir, "predictions_sample.png")
     plt.savefig(pred_file)
     plt.close()
     print(f"Prediction samples saved to {pred_file}")

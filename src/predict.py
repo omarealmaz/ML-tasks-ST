@@ -6,7 +6,12 @@ import tensorflow as tf
 from PIL import Image
 from segmentation import segment_and_preprocess
 
-def predict_from_image(image_path, model_path="mnist_cnn.keras"):
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+DEFAULT_MODEL_PATH = os.path.join(PROJECT_ROOT, "models", "mnist_cnn.keras")
+
+def predict_from_image(image_path, model_path=None):
+    if model_path is None:
+        model_path = DEFAULT_MODEL_PATH
     if not os.path.exists(image_path):
         print(f"❌ Error: File not found: '{image_path}'")
         print("💡 Tip: If your filename contains spaces, remember to wrap it in quotes:")

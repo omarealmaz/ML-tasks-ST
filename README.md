@@ -91,19 +91,37 @@ The original MNIST dataset (70,000 images total) was rigorously partitioned to p
 ## 📁 Repository Structure
 
 ```
-├── index.html            # Web Studio: Touchpad canvas, multi-digit detector & neural visualizer
-├── app.py                # Web backend server (serves web UI and CNN inference API)
-├── segmentation.py       # Multi-digit bounding-box extraction & MNIST centering engine
-├── aidemo.py             # Script to inspect and visualize raw dataset samples
-├── train_cnn.py          # Script to build, train, validate, and evaluate the CNN
-├── predict.py            # CLI script to predict single or multiple digits from any image
-├── sample_digit.png      # Single digit test sample
-├── multi_digits_sample.png# Multi-digit test sample (4, 2, 7)
-├── mnist_cnn.keras       # Serialized trained model weights and architecture
-├── mnist_samples.png     # Visual sample of MNIST dataset digits
-├── training_curves.png   # Training vs. Validation Loss and Accuracy curves
-├── predictions_sample.png# Model test predictions with ground-truth validation
-└── README.md             # Model documentation and capability specification
+├── .gitignore            # Git exclusion rules
+├── requirements.txt      # Python dependencies
+├── README.md             # Project documentation & model specifications
+├── start.sh              # One-click launcher script
+│
+├── models/               # Serialized models and weights
+│   └── mnist_cnn.keras   # 3-layer CNN model (~1.1 MB, 98.9% test accuracy)
+│
+├── src/                  # Core Python modules & scripts
+│   ├── __init__.py
+│   ├── train_cnn.py      # Script to build, train, validate, and evaluate the CNN
+│   ├── predict.py        # CLI script to predict single or multiple digits from images
+│   ├── segmentation.py   # Multi-digit bounding-box extraction & MNIST centering engine
+│   └── aidemo.py         # Script to inspect and visualize raw dataset samples
+│
+├── web/                  # Interactive Web Studio
+│   ├── app.py            # Backend HTTP server & CNN inference API
+│   └── index.html        # Frontend drawing canvas, multi-digit detector & neural visualizer
+│
+├── data/                 # Sample inputs for testing
+│   └── samples/          # Test digit images (single, multi-digit, real handwriting)
+│       ├── sample_digit.png
+│       ├── multi_digits_sample.png
+│       ├── image.png
+│       ├── seven.png
+│       └── copy.png
+│
+└── assets/               # Visualizations & evaluation plots
+    ├── mnist_samples.png # Visual grid of MNIST dataset digits
+    ├── training_curves.png # Training vs. Validation Loss and Accuracy curves
+    └── predictions_sample.png # Model test predictions with ground-truth validation
 ```
 
 ---
@@ -112,7 +130,9 @@ The original MNIST dataset (70,000 images total) was rigorously partitioned to p
 
 ### 1. Launch Interactive Web Studio (Touchpad Canvas + Neural Visualizer)
 ```bash
-python3 app.py
+./start.sh
+# or:
+python3 web/app.py
 ```
 Open **[http://127.0.0.1:8000](http://127.0.0.1:8000)** in your browser:
 - **Touchpad/Mouse drawing pad** supporting multi-digit input with real-time bounding boxes.
@@ -125,26 +145,26 @@ Open **[http://127.0.0.1:8000](http://127.0.0.1:8000)** in your browser:
 
 ### 2. Run Multi-Digit Prediction from CLI
 ```bash
-# Predict single or multiple numbers from any image file (supports spaces in path)
-python3 predict.py multi_digits_sample.png
-python3 predict.py image.png
+# Predict single or multiple numbers from any image file
+python3 src/predict.py data/samples/multi_digits_sample.png
+python3 src/predict.py data/samples/sample_digit.png
 ```
 
 ### 3. Visualize Raw Dataset Samples
 ```bash
-python3 aidemo.py
+python3 src/aidemo.py
 ```
 
 ### 4. Train the Model from Scratch
 ```bash
-python3 train_cnn.py
+python3 src/train_cnn.py
 ```
 ```python
 import tensorflow as tf
 import numpy as np
 
 # Load the saved model
-model = tf.keras.models.load_model("mnist_cnn.keras")
+model = tf.keras.models.load_model("models/mnist_cnn.keras")
 
 # Run inference on any (28, 28) or (N, 28, 28, 1) normalized image
 # test_images normalized to [0, 1]

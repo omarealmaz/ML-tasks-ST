@@ -10,11 +10,17 @@ import webbrowser
 import numpy as np
 import tensorflow as tf
 from PIL import Image
+
+# Add src to sys.path
+SRC_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
+if SRC_DIR not in sys.path:
+    sys.path.insert(0, SRC_DIR)
 from segmentation import segment_and_preprocess
 
 # Default port with fallback
 START_PORT = 8000
-MODEL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mnist_cnn.keras")
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+MODEL_PATH = os.path.join(PROJECT_ROOT, "models", "mnist_cnn.keras")
 
 if not os.path.exists(MODEL_PATH):
     print(f"❌ Error: Model file '{MODEL_PATH}' not found!")

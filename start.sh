@@ -9,5 +9,5 @@ echo "=========================================================="
 echo "  Starting MNIST CNN Studio & Backend Server"
 echo "=========================================================="
 
-# Launch app.py
-exec python3 app.py
+# Launch web/app.py
+exec python3 web/app.py
