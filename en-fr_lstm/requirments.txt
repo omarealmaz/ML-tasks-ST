@@ -1,0 +1,6 @@
+tensorflow
+numpy
+datasets
+tokenizers
+sacrebleu
+matplotlib
