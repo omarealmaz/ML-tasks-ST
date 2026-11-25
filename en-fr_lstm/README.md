@@ -87,6 +87,8 @@ Install the dependencies listed in [requirments.txt](file:///home/omarealmaz/tf-
 
 ```bash
 pip install -r requirments.txt
+mkdir -p runs/main
+wget -O runs/main/best.weights.h5 https://github.com/omarealmaz/ML-tasks-ST/releases/download/v1.0/best.weights.h5
 ```
 
 Run the sanity and shape tests:
